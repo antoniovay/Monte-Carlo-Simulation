@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 
 using namespace std;
 
@@ -107,7 +108,9 @@ int main() {
     double Z_Limit = 30;      // граница среды
     double ground = 0;        // уровень земли
 
-    for (double P_Absorb = 0; P_Absorb <= 1; P_Absorb += 0.001) {
+    ofstream file("/Users/antonymiroshnichenko/Library/Mobile\ Documents/com\~apple\~CloudDocs/Desktop/workSpace/Курс\ 3/Курсовая/Monte-Carlo-Simulation/Monte\ Carlo\ Simulation/Prog/Monte\ Carlo\ Simulation/data.txt");
+    
+    for (double P_Absorb = 0; P_Absorb <= 1.001; P_Absorb += 0.004) {
         double total_path = 0.0;
         int escaped = 0;
         int grounded = 0;
@@ -154,10 +157,21 @@ int main() {
         
         double avg_path = total_path / N;
         
-        cout << "Total photons:              " << N << endl; // общее число фотонов
-        cout << "Escaped photons (z > 30):   " << escaped << " (" << (double)escaped * 100 / N << "%)" << endl; // число вылетевших из среды фотонов
-        cout << "Grounded photons (z < 0):   " << grounded << " (" << (double)grounded * 100 / N << "%)" << endl; // число поглощённых землёй фотонов
-        cout << "Average path length:        " << avg_path << endl << endl; // средняя длина пути фотона
+        //cout << "Total photons:              " << N << endl; // общее число фотонов
+        //cout << "Escaped photons (z > 30):   " << escaped << " (" << (double)escaped * 100 / N << "%)" << endl; // число вылетевших из среды фотонов
+        //cout << "Grounded photons (z < 0):   " << grounded << " (" << (double)grounded * 100 / N << "%)" << endl; // число поглощённых землёй фотонов
+        //cout << "Average path length:        " << avg_path << endl << endl; // средняя длина пути фотона
+        
+        double escape_fraction = (double)escaped / N;
+        double grounded_fraction = (double)grounded / N;
+
+        file << P_Absorb << " "
+             << escape_fraction << " "
+             << grounded_fraction << " "
+             << avg_path << endl;
     }
+    
+    file.close();
+    
     return 0;
 }
