@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
+#include <vector>
 
 
 
@@ -21,6 +22,8 @@ double rand01() {
 
 class Photon {
 public:
+    friend class Simulation;
+    
     Photon() {
         x = y = z = 0;
         path = 0;
@@ -60,20 +63,99 @@ private:
 
 class Medium {
 public:
-    Medium(double pabs, double zlim, double g) {
-        P_Absorb = pabs;
-        Z_Limit = zlim;
+    virtual bool is_absorbed(double z) = 0;
+    virtual bool is_escaped(double z) = 0;
+    virtual bool is_grounded(double z) = 0;
+
+    virtual ~Medium() {}
+};
+
+
+
+class SimpleMedium : public Medium {
+public:
+
+    SimpleMedium(double p, double zlim, double g) {
+        P_absorb = p;
+        Z_limit = zlim;
         ground = g;
     }
-    
-    bool isAbsorbed() {
-        return rand01() < P_Absorb;
+
+    bool is_absorbed(double z) override {
+        return rand01() < P_absorb;
+    }
+
+    bool is_escaped(double z) override {
+        return z > Z_limit;
+    }
+
+    bool is_grounded(double z) override {
+        return z < ground;
     }
     
 private:
-    double P_Absorb;
-    double Z_Limit;
+    double P_absorb;
+    double Z_limit;
     double ground;
+};
+
+
+
+class Layer {
+public:
+    friend class MultiLayerMedium;
+    
+    Layer(double z1, double z2, double p) {
+        z_min = z1;
+        z_max = z2;
+        P_absorb = p;
+    }
+
+    bool contains(double z) {
+        return (z >= z_min && z < z_max);
+    }
+    
+private:
+    double z_min, z_max;
+    double P_absorb;
+};
+
+
+
+class MultiLayerMedium : public Medium {
+public:
+    std::vector<Layer> layers;
+    double ground, top;
+
+    MultiLayerMedium(double g, double t) {
+        ground = g;
+        top = t;
+    }
+
+    void add_layer(double z1, double z2, double p) {
+        layers.emplace_back(z1, z2, p);
+    }
+
+    double get_absorption(double z) {
+        for (auto &layer : layers) {
+            if (layer.contains(z)) {
+                return layer.P_absorb;
+            }
+        }
+        return 0.0;
+    }
+
+    bool is_absorbed(double z) override {
+        return rand01() < get_absorption(z);
+    }
+
+    bool is_escaped(double z) override {
+        return z > top;
+    }
+
+    bool is_grounded(double z) override {
+        return z < ground;
+    }
 };
 
 
@@ -85,48 +167,47 @@ public:
         L_Max = lmax;
     }
     
-    void run() {
-        ofstream file("/Users/antonymiroshnichenko/Library/Mobile\ Documents/com\~apple\~CloudDocs/Desktop/workSpace/Курс\ 3/Курсовая/Monte-Carlo-Simulation/Monte\ Carlo\ Simulation/Prog/Monte\ Carlo\ Simulation/data1.txt");
-        
-        for (double P = 0; P <= 1; P += 0.01) {
-            Medium medium(P, 30, 0);
-            
-            int escaped = 0;
-            int grounded = 0;
-            double total_path = 0;
-            
-            for (int i = 0; i < N; i++) {
-                Photon photon;
-            
-                while (photon.alive) {
-                    double L = rand01() * L_Max;
-                    photon.move(L);
-                    
-                    if (photon.z > medium.Z_Limit) {
-                        escaped++;
-                        break;
-                    }
-                    
-                    if (photon.z < medium.ground) {
-                        grounded++;
-                        break;
-                    }
-                    
-                    if (medium.isAbsorbed()) {
-                        photon.alive = false;
-                    }
+    void run(Medium &medium) {
+        std::ofstream file("/Users/antonymiroshnichenko/Library/Mobile\ Documents/com\~apple\~CloudDocs/Desktop/workSpace/Курс\ 3/Курсовая/Monte-Carlo-Simulation/Monte\ Carlo\ Simulation\ OOP/Monte\ Carlo\ Simulation\ OOP/data1.txt");
+
+        int escaped = 0;
+        int grounded = 0;
+        double total_path = 0;
+
+        for (int i = 0; i < N; i++) {
+            Photon photon;
+
+            while (photon.alive) {
+                double L = rand01() * L_Max;
+                photon.move(L);
+
+                if (medium.is_escaped(photon.z)) {
+                    escaped++;
+                    break;
                 }
-                
-                total_path += photon.path;
+
+                if (medium.is_grounded(photon.z)) {
+                    grounded++;
+                    break;
+                }
+
+                if (medium.is_absorbed(photon.z)) {
+                    photon.alive = false;
+                }
             }
-            
-            double avg_path = total_path / N;
-            
-            file << P << " " << (double)escaped / N << " " << (double)grounded / N << " " << avg_path << std::endl;
+
+            total_path += photon.path;
         }
-        
+
+        double avg_path = total_path / N;
+
+        file << (double)escaped / N << " "
+             << (double)grounded / N << " "
+        << avg_path << std::endl;
+
         file.close();
     }
+    
 private:
     int N;
     double L_Max;
