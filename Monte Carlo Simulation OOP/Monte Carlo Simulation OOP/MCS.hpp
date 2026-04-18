@@ -25,9 +25,11 @@ public:
     Photon();
     
     void move(double L);
+    void scatter();
     
 private:
     double x, y, z;
+    double ux, uy, uz; // направление
     double path;
     bool alive;
     int step;

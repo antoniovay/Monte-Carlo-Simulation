@@ -21,7 +21,7 @@ int main() {
     std::cin >> choice;
     
     if (choice == 1) {
-        SimpleMedium medium(0, 30, 0.02);
+        SimpleMedium medium(0, 30, 0.2);
         sim.run(medium);
     }
     

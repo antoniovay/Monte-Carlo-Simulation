@@ -17,27 +17,42 @@ double rand01() {
 
 Photon::Photon() {
     x = y = z = 0;
+    
+    ux = 0;
+    uy = 0;
+    uz = 1;
+    
     path = 0;
     alive = true;
     step = 0;
 }
     
 void Photon::move(double L) {
-    double mu = 2 * rand01() - 1;   // cos(theta)
+    x += L * ux;
+    y += L * uy;
+    z += L * uz;
+    path += L;
+}
+
+void Photon::scatter() {
+    double mu = 2 * rand01() - 1;
     double phi = 2 * M_PI * rand01();
 
     double sin_theta = sqrt(1 - mu * mu);
 
-    double dx = L * sin_theta * cos(phi);
-    double dy = L * sin_theta * sin(phi);
-    double dz = L * mu;
-    
-    x += dx;
-    y += dy;
-    z += dz;
-    
-    path += L;
-    step++;
+    double uxx = ux, uyy = uy, uzz = uz;
+
+    if (fabs(uzz) > 0.999) {
+        ux = sin_theta * cos(phi);
+        uy = sin_theta * sin(phi);
+        uz = mu * (uzz > 0 ? 1 : -1);
+    } else {
+        double denom = sqrt(1 - uzz * uzz);
+
+        ux = sin_theta * (uxx * uzz * cos(phi) - uyy * sin(phi)) / denom + uxx * mu;
+        uy = sin_theta * (uyy * uzz * cos(phi) + uxx * sin(phi)) / denom + uyy * mu;
+        uz = -sin_theta * cos(phi) * denom + uzz * mu;
+    }
 }
     
 
@@ -188,6 +203,8 @@ void Simulation::run(Medium &medium) {
 
             if (rand01() > q) {
                 photon.alive = false; // поглощение
+            } else {
+                photon.scatter(); // поворот
             }
         }
         
