@@ -23,17 +23,14 @@ Photon::Photon() {
 }
     
 void Photon::move(double L) {
-    double theta = 2 * M_PI * rand01();
-    double phi;
-    
-    if (step == 0)
-        phi = acos(rand01());
-    else
-        phi = acos(2 * rand01() - 1);
-    
-    double dx = L * sin(phi) * cos(theta);
-    double dy = L * sin(phi) * sin(theta);
-    double dz = L * cos(phi);
+    double mu = 2 * rand01() - 1;   // cos(theta)
+    double phi = 2 * M_PI * rand01();
+
+    double sin_theta = sqrt(1 - mu * mu);
+
+    double dx = L * sin_theta * cos(phi);
+    double dy = L * sin_theta * sin(phi);
+    double dz = L * mu;
     
     x += dx;
     y += dy;
@@ -55,6 +52,13 @@ SimpleMedium::SimpleMedium(double g, double zlim, double p) {
         ground = g;
 }
 
+SimpleMedium::SimpleMedium(double g, double zlim, double s, double scatter_prob) {
+    ground = g;
+    Z_limit = zlim;
+    sigma = s;
+    q = scatter_prob;
+}
+
 bool SimpleMedium::is_absorbed(double z) {
     return rand01() < P_absorb;
 }
@@ -67,6 +71,14 @@ bool SimpleMedium::is_grounded(double z) {
     return z < ground;
 }
 
+double SimpleMedium::get_sigma(double z) {
+    return sigma;
+}
+
+double SimpleMedium::get_q(double z) {
+    return q;
+}
+
 
 
 // -- Layer --
@@ -75,6 +87,13 @@ Layer::Layer(double z1, double z2, double p) {
     z_min = z1;
     z_max = z2;
     P_absorb = p;
+}
+
+Layer::Layer(double z1, double z2, double s, double scatter_prob) {
+    z_min = z1;
+    z_max = z2;
+    sigma = s;
+    q = scatter_prob;
 }
 
 bool Layer::contains(double z) {
@@ -90,8 +109,8 @@ MultiLayerMedium::MultiLayerMedium(double g, double t) {
     top = t;
 }
 
-void MultiLayerMedium::add_layer(double z1, double z2, double p) {
-    layers.emplace_back(z1, z2, p);
+void MultiLayerMedium::add_layer(double z1, double z2, double s, double q) {
+    layers.emplace_back(z1, z2, s, q);
 }
 
 double MultiLayerMedium::get_absorption(double z) {
@@ -115,6 +134,22 @@ bool MultiLayerMedium::is_grounded(double z) {
     return z < ground;
 }
 
+double MultiLayerMedium::get_sigma(double z) {
+    for (auto &layer : layers) {
+        if (layer.contains(z))
+            return layer.sigma;
+    }
+    return 0.0;
+}
+
+double MultiLayerMedium::get_q(double z) {
+    for (auto &layer : layers) {
+        if (layer.contains(z))
+            return layer.q;
+    }
+    return 0.0;
+}
+
 
 
 // -- Simulation --
@@ -135,7 +170,8 @@ void Simulation::run(Medium &medium) {
         Photon photon;
         
         while (photon.alive) {
-            double L = rand01() * L_Max;
+            double sigma = medium.get_sigma(photon.z);
+            double L = -log(rand01()) / sigma;
             photon.move(L);
             
             if (medium.is_escaped(photon.z)) {
@@ -148,8 +184,10 @@ void Simulation::run(Medium &medium) {
                 break;
             }
             
-            if (medium.is_absorbed(photon.z)) {
-                photon.alive = false;
+            double q = medium.get_q(photon.z);
+
+            if (rand01() > q) {
+                photon.alive = false; // поглощение
             }
         }
         
