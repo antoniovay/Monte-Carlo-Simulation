@@ -37,7 +37,7 @@ private:
 
 
 
-class Medium {
+class IMedium {
 public:
     virtual bool is_absorbed(double z) = 0;
     virtual bool is_escaped(double z) = 0;
@@ -45,12 +45,12 @@ public:
     virtual double get_sigma(double z) = 0;
     virtual double get_q(double z) = 0;
     
-    virtual ~Medium() {}
+    virtual ~IMedium() {}
 };
 
 
 
-class SimpleMedium : public Medium {
+class SimpleMedium : public IMedium {
 public:
     SimpleMedium(double g, double zlim, double p);
     SimpleMedium(double g, double zlim, double s, double scatter_prob);
@@ -89,7 +89,7 @@ private:
 
 
 
-class MultiLayerMedium : public Medium {
+class MultiLayerMedium : public IMedium {
 public:
     MultiLayerMedium(double g, double t);
 
@@ -116,7 +116,7 @@ class Simulation {
 public:
     Simulation(int n, double lmax);
     
-    void run(Medium &medium);
+    void run(IMedium &medium);
     
 private:
     int N;
@@ -124,3 +124,20 @@ private:
 };
 
 #endif
+
+
+
+class IDataPrinter {
+public:
+    virtual void print() = 0;
+};
+
+class FileDataPrinter : public IDataPrinter {
+public:
+    void print(double escaped, double grounded, double avg_path);
+};
+
+class ConsoleDataPrinter : public IDataPrinter {
+public:
+    void print(double escaped, double grounded, double avg_path);
+};

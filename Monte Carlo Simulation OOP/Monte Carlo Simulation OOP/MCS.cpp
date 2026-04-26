@@ -174,8 +174,8 @@ Simulation::Simulation(int n, double lmax) {
        L_Max = lmax;
 }
     
-void Simulation::run(Medium &medium) {
-    std::ofstream file("/Users/antonymiroshnichenko/Library/Mobile\ Documents/com\~apple\~CloudDocs/Desktop/workSpace/Курс\ 3/Курсовая/Monte-Carlo-Simulation/Monte\ Carlo\ Simulation\ OOP/Monte\ Carlo\ Simulation\ OOP/data1.txt");
+void Simulation::run(IMedium &medium) {
+    std::ofstream file("/Users/antonymiroshnichenko/Library/Mobile\ Documents/com\~apple\~CloudDocs/Desktop/workSpace/Курс\ 3/Курсовая/Monte-Carlo-Simulation/Monte\ Carlo\ Simulation\ OOP/Monte\ Carlo\ Simulation\ OOP/data1.txt", std::ios::app);
     
     int escaped = 0;
     int grounded = 0;
@@ -218,4 +218,22 @@ void Simulation::run(Medium &medium) {
     << avg_path << std::endl;
     
     file.close();
+}
+
+
+
+// -- Printers --
+
+void FileDataPrinter::print(double escaped, double grounded, double avg_path) {
+    std::ofstream file("/Users/antonymiroshnichenko/Library/Mobile\ Documents/com\~apple\~CloudDocs/Desktop/workSpace/Курс\ 3/Курсовая/Monte-Carlo-Simulation/Monte\ Carlo\ Simulation\ OOP/Monte\ Carlo\ Simulation\ OOP/data1.txt");
+    
+    file << escaped << " "
+         << grounded << " "
+         << avg_path << std::endl;
+}
+
+void ConsoleDataPrinter::print(double escaped, double grounded, double avg_path) {
+    std::cout << escaped << " "
+              << grounded << " "
+              << avg_path << std::endl;
 }
